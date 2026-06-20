@@ -1,0 +1,71 @@
+.group-stage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.group-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.group-card__header {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #1a73e8;
+  padding-bottom: 0.5rem;
+}
+
+.group-card__teams {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.group-card__predictions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid #eee;
+  padding-top: 0.75rem;
+}
+
+.group-stage-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.group-stage-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  gap: 1rem;
+  color: #d32f2f;
+}
+
+.group-stage-error button {
+  padding: 0.5rem 1.5rem;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.group-stage-error button:hover {
+  background: #1557b0;
+}
