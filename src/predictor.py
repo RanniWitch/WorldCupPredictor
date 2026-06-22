@@ -2,12 +2,14 @@
 
 import logging
 
+import numpy as np
 import pandas as pd
 
 from src.api_client import APIClient
 from src.data_pipeline import DataPipeline
 from src.exceptions import NoTrainingDataError
 from src.feature_engine import FeatureEngine
+from src.historical_data import load_historical_matches
 from src.model import PredictionModel
 from src.scaler import FeatureScaler
 
@@ -44,35 +46,87 @@ class Predictor:
         self._scaler = FeatureScaler()
         self._model = PredictionModel()
 
+    def _load_historical_training_data(self) -> tuple[pd.DataFrame, np.ndarray]:
+        """Load historical international results with recency weighting.
+
+        Converts team names to synthetic IDs for compatibility with the
+        feature engine. Returns the DataFrame in the standard match format
+        and corresponding sample weights.
+
+        Returns:
+            Tuple of (matches_df, weights) where matches_df has columns
+            [home_team_id, away_team_id, home_score, away_score, match_date]
+            and weights is a numpy array of float sample weights.
+        """
+        try:
+            hist_df, weights = load_historical_matches()
+        except FileNotFoundError:
+            logger.warning("Historical dataset not found. Skipping.")
+            return pd.DataFrame(), np.array([])
+
+        if hist_df.empty:
+            return pd.DataFrame(), np.array([])
+
+        # Build team name -> synthetic ID mapping (use large IDs to avoid
+        # collision with football-data.org IDs which are typically < 100000)
+        all_teams = sorted(
+            set(hist_df["home_team"].unique()) | set(hist_df["away_team"].unique())
+        )
+        name_to_id = {name: 100000 + i for i, name in enumerate(all_teams)}
+
+        # Convert to standard match format
+        matches = pd.DataFrame({
+            "home_team_id": hist_df["home_team"].map(name_to_id),
+            "away_team_id": hist_df["away_team"].map(name_to_id),
+            "home_score": hist_df["home_score"],
+            "away_score": hist_df["away_score"],
+            "match_date": hist_df["date"],
+        })
+
+        # Store the name mapping for later use in predictions
+        self._historical_name_to_id = name_to_id
+        self._historical_id_to_name = {v: k for k, v in name_to_id.items()}
+
+        logger.info(
+            "Loaded %d historical matches (%d unique teams) for training.",
+            len(matches), len(all_teams),
+        )
+
+        return matches, weights
+
+    def _get_team_id_from_name(self, team_name: str) -> int | None:
+        """Look up a historical team ID by name."""
+        if hasattr(self, "_historical_name_to_id"):
+            return self._historical_name_to_id.get(team_name)
+        return None
+
     def run(self, competition_id: int, training_competition_ids: list[int] | None = None) -> pd.DataFrame:
         """
         Execute full prediction pipeline.
 
+        Combines historical dataset (recency-weighted) with live API data
+        for maximum training coverage. The historical dataset provides
+        thousands of recent international matches; the API provides
+        current-tournament context.
+
         Args:
             competition_id: The competition to predict matches for.
             training_competition_ids: Optional additional competition IDs to fetch
-                historical match data from for training. Useful when the target
-                competition has few finished matches (e.g., early in a tournament).
+                historical match data from for training.
 
-        Returns DataFrame with columns:
-            - home_team_id: int
-            - away_team_id: int
-            - home_win_prob: float
-            - home_loss_prob: float
-            - match_date: datetime
-
+        Returns DataFrame with columns defined in PREDICTION_COLUMNS.
         Sorted by match_date ascending.
         Returns empty DataFrame if no scheduled matches.
-        Raises NoTrainingDataError if no finished matches across all competitions.
-        Propagates errors from any pipeline step.
+        Raises NoTrainingDataError if no finished matches across all sources.
         """
-        # Step 1: Fetch matches via API_Client
+        # Step 1: Load historical dataset (bulk training data with recency weights)
+        historical_matches, historical_weights = self._load_historical_training_data()
+
+        # Step 2: Fetch live matches from API
         raw_response = self._api_client.get_matches(competition_id)
+        api_finished = self._data_pipeline.parse_matches(raw_response)
 
-        # Step 2: Parse finished matches via Data_Pipeline
-        finished_matches = self._data_pipeline.parse_matches(raw_response)
-
-        # Fetch supplementary training data from additional competitions
+        # Fetch supplementary API data
         if training_competition_ids:
             for extra_id in training_competition_ids:
                 if extra_id == competition_id:
@@ -81,35 +135,57 @@ class Predictor:
                     extra_response = self._api_client.get_matches(extra_id)
                     extra_finished = self._data_pipeline.parse_matches(extra_response)
                     if not extra_finished.empty:
-                        finished_matches = pd.concat(
-                            [finished_matches, extra_finished], ignore_index=True
+                        api_finished = pd.concat(
+                            [api_finished, extra_finished], ignore_index=True
                         )
                         logger.info(
-                            "Added %d matches from competition %d for training.",
+                            "Added %d matches from competition %d.",
                             len(extra_finished), extra_id,
                         )
                 except Exception as e:
                     logger.warning(
-                        "Failed to fetch supplementary data from competition %d: %s",
-                        extra_id, e,
+                        "Failed to fetch competition %d: %s", extra_id, e,
                     )
 
-        if finished_matches.empty:
+        # Step 3: Combine all training data
+        all_training = []
+        all_weights = []
+
+        if not historical_matches.empty:
+            all_training.append(historical_matches)
+            all_weights.append(historical_weights)
+
+        if not api_finished.empty:
+            all_training.append(api_finished)
+            # API matches get maximum weight (most current/relevant)
+            all_weights.append(np.ones(len(api_finished)) * 2.0)
+
+        if not all_training:
             raise NoTrainingDataError(
-                "No finished matches available for training."
+                "No finished matches available for training from any source."
             )
 
-        # Step 3: Extract scheduled matches via Data_Pipeline
+        finished_matches = pd.concat(all_training, ignore_index=True)
+        sample_weights = np.concatenate(all_weights)
+
+        logger.info(
+            "Total training matches: %d (historical: %d, API: %d)",
+            len(finished_matches),
+            len(historical_matches) if not historical_matches.empty else 0,
+            len(api_finished) if not api_finished.empty else 0,
+        )
+
+        # Step 4: Extract scheduled matches for prediction
         scheduled_matches = self._data_pipeline.get_scheduled_matches(raw_response)
 
         if not scheduled_matches:
             logger.info("No scheduled matches found for prediction.")
             return pd.DataFrame(columns=PREDICTION_COLUMNS)
 
-        # Step 4: Compute features via Feature_Engine
+        # Step 5: Compute features from ALL training data
         features_df = self._feature_engine.compute_features(finished_matches)
 
-        # Step 5: Build training feature matrix and binary labels
+        # Step 6: Build training feature matrix and 3-class labels
         training_features = []
         labels = []
 
@@ -122,30 +198,43 @@ class Predictor:
             training_features.append(match_features)
             # 3-class label: 2 = home win, 1 = draw, 0 = away win
             if match["home_score"] > match["away_score"]:
-                label = 2  # home win
+                label = 2
             elif match["home_score"] == match["away_score"]:
-                label = 1  # draw
+                label = 1
             else:
-                label = 0  # away win
+                label = 0
             labels.append(label)
 
         training_matrix = pd.concat(training_features, ignore_index=True)
         labels_series = pd.Series(labels, dtype=int)
 
-        # Step 6: Scale training features via Scaler
+        # Step 7: Scale training features
         scaled_training = self._scaler.fit_transform(training_matrix)
 
-        # Step 7: Train model
-        self._model.train(scaled_training, labels_series)
+        # Step 8: Train model with sample weights for recency bias
+        self._model.train(scaled_training, labels_series, sample_weights=sample_weights)
 
-        # Step 8: For each scheduled match: build feature vector, scale, predict
+        # Step 9: Predict for each scheduled match
         predictions = []
 
         for scheduled in scheduled_matches:
+            home_id = int(scheduled["home_team_id"])
+            away_id = int(scheduled["away_team_id"])
+
+            # Try to also use historical ID if team name matches
+            home_name = scheduled.get("home_team_name", "")
+            away_name = scheduled.get("away_team_name", "")
+            hist_home_id = self._get_team_id_from_name(home_name)
+            hist_away_id = self._get_team_id_from_name(away_name)
+
+            # Use whichever ID has data in features_df (prefer API ID, fallback to historical)
+            if home_id not in features_df.index and hist_home_id and hist_home_id in features_df.index:
+                home_id = hist_home_id
+            if away_id not in features_df.index and hist_away_id and hist_away_id in features_df.index:
+                away_id = hist_away_id
+
             match_features = self._feature_engine.get_match_features(
-                int(scheduled["home_team_id"]),
-                int(scheduled["away_team_id"]),
-                features_df,
+                home_id, away_id, features_df,
             )
             scaled_features = self._scaler.transform(match_features)
             prediction = self._model.predict(scaled_features)
@@ -166,7 +255,7 @@ class Predictor:
                 }
             )
 
-        # Step 9: Return sorted DataFrame of predictions
+        # Step 10: Return sorted predictions
         result_df = pd.DataFrame(predictions, columns=PREDICTION_COLUMNS)
         result_df = result_df.sort_values("match_date", ascending=True).reset_index(
             drop=True

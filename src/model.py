@@ -22,11 +22,12 @@ class PredictionModel:
         self._model: LogisticRegression | None = None
         self._is_fitted: bool = False
 
-    def train(self, features: pd.DataFrame, labels: pd.Series) -> None:
+    def train(self, features: pd.DataFrame, labels: pd.Series, sample_weights: np.ndarray | None = None) -> None:
         """
         Train Logistic Regression on scaled features and 3-class labels.
 
         Labels: 2 = home win, 1 = draw, 0 = away win.
+        sample_weights: Optional per-sample weights for recency bias.
         Raises InsufficientDataError if len(features) < 10.
         Raises SingleClassError if labels contain fewer than 2 unique values.
         Raises ValueError if features contain NaN or infinite values.
@@ -34,7 +35,7 @@ class PredictionModel:
         self._validate_training_data(features, labels)
 
         self._model = LogisticRegression(max_iter=1000, solver="lbfgs")
-        self._model.fit(features, labels)
+        self._model.fit(features, labels, sample_weight=sample_weights)
         self._is_fitted = True
 
     def predict(self, features: pd.DataFrame) -> pd.DataFrame:
