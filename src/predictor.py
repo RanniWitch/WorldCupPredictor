@@ -9,6 +9,7 @@ from src.api_client import APIClient
 from src.data_pipeline import DataPipeline
 from src.exceptions import NoTrainingDataError
 from src.feature_engine import FeatureEngine
+from src.goals_model import GoalsModel, GoalsPrediction
 from src.historical_data import load_historical_matches
 from src.model import PredictionModel
 from src.scaler import FeatureScaler
@@ -28,6 +29,17 @@ PREDICTION_COLUMNS = [
     "away_team_id",
     "home_team_crest",
     "away_team_crest",
+    "expected_home_goals",
+    "expected_away_goals",
+    "expected_total_goals",
+    "over_1_5_prob",
+    "over_2_5_prob",
+    "over_3_5_prob",
+    "over_4_5_prob",
+    "predicted_home_goals",
+    "predicted_away_goals",
+    "predicted_score_prob",
+    "top_scorelines",
 ]
 
 
@@ -45,6 +57,7 @@ class Predictor:
         self._feature_engine = FeatureEngine()
         self._scaler = FeatureScaler()
         self._model = PredictionModel()
+        self._goals_model = GoalsModel()
 
     def _load_historical_training_data(self) -> tuple[pd.DataFrame, np.ndarray]:
         """Load historical international results with recency weighting.
@@ -214,6 +227,9 @@ class Predictor:
         # Step 8: Train model with sample weights for recency bias
         self._model.train(scaled_training, labels_series, sample_weights=sample_weights)
 
+        # Step 8b: Fit the Poisson goals model on the same training data
+        self._goals_model.fit(finished_matches, sample_weights=sample_weights)
+
         # Step 9: Predict for each scheduled match
         predictions = []
 
@@ -239,6 +255,9 @@ class Predictor:
             scaled_features = self._scaler.transform(match_features)
             prediction = self._model.predict(scaled_features)
 
+            # Goals prediction using the Poisson model
+            goals_pred = self._goals_model.predict(home_id, away_id)
+
             predictions.append(
                 {
                     "home_team_name": scheduled.get("home_team_name", "Unknown"),
@@ -252,6 +271,17 @@ class Predictor:
                     "away_team_id": scheduled["away_team_id"],
                     "home_team_crest": scheduled.get("home_team_crest", ""),
                     "away_team_crest": scheduled.get("away_team_crest", ""),
+                    "expected_home_goals": goals_pred.expected_home_goals,
+                    "expected_away_goals": goals_pred.expected_away_goals,
+                    "expected_total_goals": goals_pred.expected_total_goals,
+                    "over_1_5_prob": goals_pred.over_1_5_prob,
+                    "over_2_5_prob": goals_pred.over_2_5_prob,
+                    "over_3_5_prob": goals_pred.over_3_5_prob,
+                    "over_4_5_prob": goals_pred.over_4_5_prob,
+                    "predicted_home_goals": goals_pred.predicted_home_goals,
+                    "predicted_away_goals": goals_pred.predicted_away_goals,
+                    "predicted_score_prob": goals_pred.predicted_score_prob,
+                    "top_scorelines": goals_pred.top_scorelines,
                 }
             )
 

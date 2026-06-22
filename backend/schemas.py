@@ -24,8 +24,16 @@ class GroupsResponse(BaseModel):
     groups: list[Group]
 
 
+class ScorelinePrediction(BaseModel):
+    """A predicted scoreline with its probability."""
+
+    home_goals: int
+    away_goals: int
+    probability: float
+
+
 class MatchPrediction(BaseModel):
-    """A single match prediction with win/draw/loss probabilities."""
+    """A single match prediction with win/draw/loss probabilities and goals data."""
 
     home_team_name: str
     away_team_name: str
@@ -36,6 +44,19 @@ class MatchPrediction(BaseModel):
     home_team_crest: str
     away_team_crest: str
     match_date: str  # ISO 8601 format
+
+    # Goals predictions
+    expected_home_goals: float = 0.0
+    expected_away_goals: float = 0.0
+    expected_total_goals: float = 0.0
+    over_1_5_prob: float = 0.0
+    over_2_5_prob: float = 0.0
+    over_3_5_prob: float = 0.0
+    over_4_5_prob: float = 0.0
+    predicted_home_goals: int = 0
+    predicted_away_goals: int = 0
+    predicted_score_prob: float = 0.0
+    top_scorelines: list[ScorelinePrediction] = []
 
 
 class PredictionsResponse(BaseModel):
