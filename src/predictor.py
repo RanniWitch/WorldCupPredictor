@@ -18,6 +18,8 @@ PREDICTION_COLUMNS = [
     "home_team_name",
     "away_team_name",
     "home_win_prob",
+    "draw_prob",
+    "away_win_prob",
     "home_loss_prob",
     "match_date",
     "home_team_id",
@@ -118,8 +120,13 @@ class Predictor:
                 features_df,
             )
             training_features.append(match_features)
-            # Binary label: 1 = home win, 0 = home loss or draw
-            label = 1 if match["home_score"] > match["away_score"] else 0
+            # 3-class label: 2 = home win, 1 = draw, 0 = away win
+            if match["home_score"] > match["away_score"]:
+                label = 2  # home win
+            elif match["home_score"] == match["away_score"]:
+                label = 1  # draw
+            else:
+                label = 0  # away win
             labels.append(label)
 
         training_matrix = pd.concat(training_features, ignore_index=True)
@@ -148,6 +155,8 @@ class Predictor:
                     "home_team_name": scheduled.get("home_team_name", "Unknown"),
                     "away_team_name": scheduled.get("away_team_name", "Unknown"),
                     "home_win_prob": prediction["home_win_prob"].iloc[0],
+                    "draw_prob": prediction["draw_prob"].iloc[0],
+                    "away_win_prob": prediction["away_win_prob"].iloc[0],
                     "home_loss_prob": prediction["home_loss_prob"].iloc[0],
                     "match_date": scheduled["match_date"],
                     "home_team_id": scheduled["home_team_id"],

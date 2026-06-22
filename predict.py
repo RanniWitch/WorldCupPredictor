@@ -42,19 +42,30 @@ def main():
         home = row["home_team_name"]
         away = row["away_team_name"]
         home_prob = row["home_win_prob"]
-        loss_prob = row["home_loss_prob"]
+        draw_prob = row["draw_prob"]
+        away_prob = row["away_win_prob"]
         date = row["match_date"].strftime("%b %d, %Y")
 
-        if home_prob > loss_prob:
+        if home_prob >= draw_prob and home_prob >= away_prob:
             winner = home
             confidence = home_prob
+            outcome = "Win"
+        elif draw_prob >= home_prob and draw_prob >= away_prob:
+            winner = "Draw"
+            confidence = draw_prob
+            outcome = "Draw"
         else:
             winner = away
-            confidence = loss_prob
+            confidence = away_prob
+            outcome = "Win"
 
         print(f"  {i+1}. {home} vs {away}")
         print(f"     Date: {date}")
-        print(f"     Predicted Winner: {winner} ({confidence:.1%} confidence)")
+        if outcome == "Draw":
+            print(f"     Predicted Outcome: DRAW ({confidence:.1%} confidence)")
+        else:
+            print(f"     Predicted Winner: {winner} ({confidence:.1%} confidence)")
+        print(f"     Probabilities: {home} {home_prob:.1%} | Draw {draw_prob:.1%} | {away} {away_prob:.1%}")
         print()
 
     print("=" * 60)

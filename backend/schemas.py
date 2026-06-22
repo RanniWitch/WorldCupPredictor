@@ -25,12 +25,14 @@ class GroupsResponse(BaseModel):
 
 
 class MatchPrediction(BaseModel):
-    """A single match prediction with win/loss probabilities."""
+    """A single match prediction with win/draw/loss probabilities."""
 
     home_team_name: str
     away_team_name: str
     home_win_prob: float  # Probability of home team winning, bounded [0.0, 1.0]
-    home_loss_prob: float  # Probability of home team losing, bounded [0.0, 1.0]
+    draw_prob: float  # Probability of a draw, bounded [0.0, 1.0]
+    away_win_prob: float  # Probability of away team winning, bounded [0.0, 1.0]
+    home_loss_prob: float  # away_win_prob + draw_prob (backward compat)
     home_team_crest: str
     away_team_crest: str
     match_date: str  # ISO 8601 format

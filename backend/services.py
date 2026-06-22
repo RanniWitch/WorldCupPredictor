@@ -324,6 +324,8 @@ def get_predictions() -> PredictionsResponse:
             home_team_name=row["home_team_name"],
             away_team_name=row["away_team_name"],
             home_win_prob=float(row["home_win_prob"]),
+            draw_prob=float(row["draw_prob"]),
+            away_win_prob=float(row["away_win_prob"]),
             home_loss_prob=float(row["home_loss_prob"]),
             home_team_crest=row["home_team_crest"],
             away_team_crest=row["away_team_crest"],

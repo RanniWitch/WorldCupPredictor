@@ -8,7 +8,13 @@ from src.exceptions import InsufficientDataError, NotFittedError, SingleClassErr
 
 
 class PredictionModel:
-    """Wraps scikit-learn's LogisticRegression with validation and probability output."""
+    """Wraps scikit-learn's LogisticRegression with 3-class probability output.
+
+    Classes:
+        0 = away win
+        1 = draw
+        2 = home win
+    """
 
     MIN_TRAINING_SAMPLES = 10
 
@@ -18,11 +24,11 @@ class PredictionModel:
 
     def train(self, features: pd.DataFrame, labels: pd.Series) -> None:
         """
-        Train Logistic Regression on scaled features and binary labels.
+        Train Logistic Regression on scaled features and 3-class labels.
 
-        Labels: 1 = home win, 0 = home loss or draw.
+        Labels: 2 = home win, 1 = draw, 0 = away win.
         Raises InsufficientDataError if len(features) < 10.
-        Raises SingleClassError if labels contain only one unique value.
+        Raises SingleClassError if labels contain fewer than 2 unique values.
         Raises ValueError if features contain NaN or infinite values.
         """
         self._validate_training_data(features, labels)
@@ -35,7 +41,7 @@ class PredictionModel:
         """
         Predict probabilities for given feature vectors.
 
-        Returns DataFrame with columns: home_win_prob, home_loss_prob
+        Returns DataFrame with columns: home_win_prob, draw_prob, away_win_prob
         Probabilities sum to 1.0 per row.
         Raises NotFittedError if model has not been trained.
         """
@@ -44,15 +50,30 @@ class PredictionModel:
 
         probabilities = self._model.predict_proba(features)
 
-        # LogisticRegression.classes_ is sorted, so index 0 = class 0 (loss/draw),
-        # index 1 = class 1 (win)
-        return pd.DataFrame(
-            {
-                "home_win_prob": probabilities[:, 1],
-                "home_loss_prob": probabilities[:, 0],
-            },
-            index=features.index,
-        )
+        # Map class indices to column names based on classes_ array
+        classes = list(self._model.classes_)
+        result = pd.DataFrame(index=features.index)
+
+        # Assign probabilities based on which class index corresponds to which outcome
+        if 0 in classes:
+            result["away_win_prob"] = probabilities[:, classes.index(0)]
+        else:
+            result["away_win_prob"] = 0.0
+
+        if 1 in classes:
+            result["draw_prob"] = probabilities[:, classes.index(1)]
+        else:
+            result["draw_prob"] = 0.0
+
+        if 2 in classes:
+            result["home_win_prob"] = probabilities[:, classes.index(2)]
+        else:
+            result["home_win_prob"] = 0.0
+
+        # For backward compatibility, compute home_loss_prob as away_win + draw
+        result["home_loss_prob"] = result["away_win_prob"] + result["draw_prob"]
+
+        return result
 
     def _validate_training_data(
         self, features: pd.DataFrame, labels: pd.Series
@@ -67,7 +88,7 @@ class PredictionModel:
         unique_classes = labels.nunique()
         if unique_classes < 2:
             raise SingleClassError(
-                "Training labels must contain both classes (0 and 1), "
+                "Training labels must contain at least 2 classes, "
                 f"but only found {labels.unique().tolist()}."
             )
 
