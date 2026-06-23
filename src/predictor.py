@@ -94,6 +94,8 @@ class Predictor:
             "home_score": hist_df["home_score"],
             "away_score": hist_df["away_score"],
             "match_date": hist_df["date"],
+            "home_team_name": hist_df["home_team"],
+            "away_team_name": hist_df["away_team"],
         })
 
         # Store the name mapping for later use in predictions
@@ -196,6 +198,12 @@ class Predictor:
             return pd.DataFrame(columns=PREDICTION_COLUMNS)
 
         # Step 5: Compute features from ALL training data
+        # Normalize match_date to tz-naive for consistent sorting
+        if "match_date" in finished_matches.columns:
+            finished_matches["match_date"] = pd.to_datetime(
+                finished_matches["match_date"], utc=True
+            ).dt.tz_localize(None)
+
         features_df = self._feature_engine.compute_features(finished_matches)
 
         # Step 6: Build training feature matrix and 3-class labels
@@ -207,6 +215,10 @@ class Predictor:
                 int(match["home_team_id"]),
                 int(match["away_team_id"]),
                 features_df,
+                home_team_name=str(match.get("home_team_name", "")),
+                away_team_name=str(match.get("away_team_name", "")),
+                is_neutral=True,  # Assume neutral for historical international matches
+                matches_df=finished_matches,
             )
             training_features.append(match_features)
             # 3-class label: 2 = home win, 1 = draw, 0 = away win
@@ -251,6 +263,10 @@ class Predictor:
 
             match_features = self._feature_engine.get_match_features(
                 home_id, away_id, features_df,
+                home_team_name=home_name,
+                away_team_name=away_name,
+                is_neutral=True,  # World Cup matches are on neutral ground
+                matches_df=finished_matches,
             )
             scaled_features = self._scaler.transform(match_features)
             prediction = self._model.predict(scaled_features)
