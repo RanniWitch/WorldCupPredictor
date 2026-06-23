@@ -249,6 +249,76 @@ The football-data.org free tier allows 10 requests per minute. This project hand
 - Automatic retry with appropriate wait times on 429 responses
 - Server-side response caching (5-minute TTL) to minimize redundant API calls
 
+## Model Evolution
+
+The prediction model went through several iterations during development, each addressing limitations discovered in the previous version.
+
+### Phase 1: Binary Logistic Regression (6 features)
+
+The initial model used scikit-learn's Logistic Regression with binary classification: home win (1) vs. not home win (0). Draws were lumped in with away wins as a single "loss" class. The feature set was minimal — just win rate, average goals scored, and average goals conceded for each team (6 features total).
+
+This produced extreme predictions. A match between two evenly-matched teams would show something like 52% vs 48% with no draw possibility, which does not reflect how football works — especially at a World Cup where draws are common in group stages.
+
+### Phase 2: 3-Class Logistic Regression
+
+To address the missing draw predictions, the model was upgraded to multinomial classification with three outcome classes: home win (2), draw (1), away win (0). This was a critical improvement — the model could now output three distinct probabilities that sum to 1.0.
+
+However, logistic regression still produced unrealistic draw probabilities (often below 5%) because it assumes linear decision boundaries. In reality, draws become more likely when teams are closely matched — a non-linear relationship that logistic regression cannot capture.
+
+### Phase 3: XGBoost (20 features)
+
+The final model uses XGBoost (Extreme Gradient Boosting), which builds hundreds of decision trees that each correct the errors of the previous ones. This allows it to learn patterns like:
+
+- When the ranking gap is small, draws are far more likely
+- A team's recent form matters more than its all-time record
+- Head-to-head history can override raw statistics (some matchups have persistent patterns)
+- Teams with high draw rates tend to keep drawing
+
+XGBoost with 20 features produces significantly more realistic probabilities. Evenly-matched teams now show 25-35% draw probability, which aligns with real World Cup statistics where approximately 25% of group stage matches end in draws.
+
+### Why XGBoost Over Logistic Regression
+
+| Aspect | Logistic Regression | XGBoost |
+|--------|-------------------|---------|
+| Decision boundary | Single linear plane | Complex non-linear |
+| Feature interactions | Cannot model | Captures automatically |
+| Threshold effects | Cannot model | Learns naturally |
+| Draw prediction quality | Poor (0.5-5%) | Realistic (10-35%) |
+| Handles 20 features | Prone to noise | Handles well with regularization |
+| Training time | Instant | Under 2 seconds |
+
+## Issues Encountered and Solutions
+
+### Rate Limiting (502/503 errors)
+
+The football-data.org free tier limits API calls to 10 per minute. The prediction engine makes multiple API calls (World Cup matches + supplementary competitions for training), and the frontend fires both `/api/groups` and `/api/predictions` simultaneously on page load. This exhausted the rate limit within seconds, causing cascading 502 and 503 errors.
+
+**Solution:** Implemented response header tracking (`X-RequestsAvailable`, `X-RequestCounter-Reset`) to monitor the remaining request budget. The API client now proactively waits when fewer than 2 requests remain, uses precise wait times from the response headers rather than guessing, and retries on 429 responses. Added 5-minute server-side caching so repeated page loads or refreshes make zero API calls.
+
+### No Training Data (503 "Insufficient data")
+
+The predictor initially only fetched matches from competition 2000 (World Cup 2026). Since the tournament had few or no finished matches early on, the model had nothing to train on and threw `NoTrainingDataError`.
+
+**Solution:** Added supplementary training competition IDs (European Championship, Copa America) for immediate API-based data, then integrated the Kaggle historical dataset with 5,600+ matches since 2020 as the primary training source. The API data now supplements rather than serves as the sole source.
+
+### Outdated Roster Problem
+
+Using all historical international match data back to 1872 would mean training on teams with completely different players, coaches, and playing styles. A 2010 Brazil squad has nothing in common with the 2026 squad.
+
+**Solution:** Applied a strict time cutoff (only matches since January 2020) combined with exponential recency weighting (1-year half-life). A match from 4 years ago carries only 6% of the weight of a match from last month. This retains enough data volume (5,600+ matches) while ensuring the model reflects current team strength.
+
+### Group Stage Data Format Mismatch
+
+The football-data.org API returns World Cup 2026 standings with `stage: "ALL"` and group names like `"Group A"`, but the code expected `stage: "GROUP_STAGE"` and `"GROUP_A"` (the format used for historical World Cups). This caused the groups endpoint to return 0 groups.
+
+**Solution:** Updated the parser to accept both formats — `"GROUP_STAGE"` or `"ALL"` for the stage field, and both `"GROUP_A"` and `"Group A"` for group names. The fix handles current and historical API response formats.
+
+### Timezone Mismatch in Training Data
+
+The historical dataset contains timezone-naive dates while the football-data.org API returns timezone-aware (UTC) timestamps. When combined into a single DataFrame, sorting by date failed with `TypeError: Cannot compare tz-naive and tz-aware timestamps`.
+
+**Solution:** Normalized all `match_date` columns to timezone-naive UTC before combining datasets and computing features.
+
 ## License
 
 MIT
