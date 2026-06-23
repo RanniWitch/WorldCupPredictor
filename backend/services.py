@@ -21,6 +21,7 @@ from backend.schemas import (
     KnockoutTeam,
     MatchPrediction,
     PredictionsResponse,
+    ScorelinePrediction,
 )
 
 logger = logging.getLogger(__name__)
@@ -330,6 +331,20 @@ def get_predictions() -> PredictionsResponse:
             home_team_crest=row["home_team_crest"],
             away_team_crest=row["away_team_crest"],
             match_date=row["match_date"].isoformat(),
+            expected_home_goals=float(row["expected_home_goals"]),
+            expected_away_goals=float(row["expected_away_goals"]),
+            expected_total_goals=float(row["expected_total_goals"]),
+            over_1_5_prob=float(row["over_1_5_prob"]),
+            over_2_5_prob=float(row["over_2_5_prob"]),
+            over_3_5_prob=float(row["over_3_5_prob"]),
+            over_4_5_prob=float(row["over_4_5_prob"]),
+            predicted_home_goals=int(row["predicted_home_goals"]),
+            predicted_away_goals=int(row["predicted_away_goals"]),
+            predicted_score_prob=float(row["predicted_score_prob"]),
+            top_scorelines=[
+                ScorelinePrediction(home_goals=h, away_goals=a, probability=round(p, 4))
+                for h, a, p in row["top_scorelines"]
+            ],
         )
         for _, row in df.iterrows()
     ]
