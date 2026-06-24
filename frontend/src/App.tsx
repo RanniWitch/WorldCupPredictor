@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { GroupStageView } from './components/GroupStageView';
 import { KnockoutBracketView } from './components/KnockoutBracketView';
+import { HedgeBetCalculator } from './components/HedgeBetCalculator';
+import { ArbitrageScanner } from './components/ArbitrageScanner';
 import './App.css';
 
-type Tab = 'groups' | 'knockout';
+type Tab = 'groups' | 'knockout' | 'hedge' | 'arbitrage';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('groups');
@@ -43,6 +45,26 @@ function App() {
         >
           Knockout Bracket
         </button>
+        <button
+          className={`app-tab${activeTab === 'hedge' ? ' app-tab--active' : ''}`}
+          role="tab"
+          aria-selected={activeTab === 'hedge'}
+          aria-controls="panel-hedge"
+          id="tab-hedge"
+          onClick={() => setActiveTab('hedge')}
+        >
+          Hedge Calculator
+        </button>
+        <button
+          className={`app-tab${activeTab === 'arbitrage' ? ' app-tab--active' : ''}`}
+          role="tab"
+          aria-selected={activeTab === 'arbitrage'}
+          aria-controls="panel-arbitrage"
+          id="tab-arbitrage"
+          onClick={() => setActiveTab('arbitrage')}
+        >
+          Arb Scanner
+        </button>
       </nav>
 
       <main className="app-content">
@@ -65,6 +87,22 @@ function App() {
           {activeTab === 'knockout' && (
             <KnockoutBracketView key={`knockout-${refreshKey}`} active={true} />
           )}
+        </div>
+        <div
+          id="panel-hedge"
+          role="tabpanel"
+          aria-labelledby="tab-hedge"
+          hidden={activeTab !== 'hedge'}
+        >
+          {activeTab === 'hedge' && <HedgeBetCalculator />}
+        </div>
+        <div
+          id="panel-arbitrage"
+          role="tabpanel"
+          aria-labelledby="tab-arbitrage"
+          hidden={activeTab !== 'arbitrage'}
+        >
+          {activeTab === 'arbitrage' && <ArbitrageScanner active={true} />}
         </div>
       </main>
     </div>

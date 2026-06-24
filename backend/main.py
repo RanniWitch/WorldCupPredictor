@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.routes.groups import router as groups_router
 from backend.routes.knockout import router as knockout_router
 from backend.routes.predictions import router as predictions_router
+from backend.routes.arbitrage import router as arbitrage_router
 
 # Configure logging so errors show up in the console
 logging.basicConfig(level=logging.INFO)
@@ -39,3 +40,4 @@ app.add_middleware(
 app.include_router(groups_router)
 app.include_router(knockout_router)
 app.include_router(predictions_router)
+app.include_router(arbitrage_router)

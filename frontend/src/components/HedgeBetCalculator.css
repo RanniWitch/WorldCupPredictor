@@ -1,0 +1,336 @@
+.hedge-calculator {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hedge-calculator__header {
+  margin-bottom: 24px;
+}
+
+.hedge-calculator__title {
+  font-size: 1.5rem;
+  color: #1a1a2e;
+  margin: 0 0 8px;
+}
+
+.hedge-calculator__subtitle {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Controls */
+.hedge-calculator__controls {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.hedge-calculator__control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.hedge-calculator__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.hedge-calculator__select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fff;
+  color: #1f2937;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.hedge-calculator__select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Form */
+.hedge-calculator__form {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.hedge-calculator__info-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: #1e40af;
+  line-height: 1.5;
+}
+
+.hedge-calculator__input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex: 1;
+}
+
+.hedge-calculator__input-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.hedge-calculator__input-row .hedge-calculator__input-group {
+  min-width: 140px;
+}
+
+.hedge-calculator__input {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #1f2937;
+  transition: border-color 0.2s;
+}
+
+.hedge-calculator__input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.hedge-calculator__input::placeholder {
+  color: #9ca3af;
+}
+
+/* Results */
+.hedge-calculator__results {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.hedge-calculator__results-title {
+  font-size: 1.1rem;
+  color: #1a1a2e;
+  margin: 0 0 16px;
+}
+
+.hedge-calculator__results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.hedge-calculator__result-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+}
+
+.hedge-calculator__result-card--highlight {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.hedge-calculator__result-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.hedge-calculator__result-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.hedge-calculator__result-value--primary {
+  color: #2563eb;
+}
+
+.hedge-calculator__result-value--profit {
+  color: #059669;
+}
+
+.hedge-calculator__result-value--loss {
+  color: #dc2626;
+}
+
+/* Arbitrage badges */
+.hedge-calculator__arb-badge {
+  background: #d1fae5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.hedge-calculator__no-arb-badge {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* Three-way stakes grid */
+.hedge-calculator__stakes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hedge-calculator__stake-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+
+.hedge-calculator__stake-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.hedge-calculator__stake-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.hedge-calculator__stake-profit {
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.hedge-calculator__stake-profit .profit {
+  color: #059669;
+  font-weight: 600;
+}
+
+.hedge-calculator__stake-profit .loss {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* Odds Converter */
+.odds-converter {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 24px;
+}
+
+.odds-converter__title {
+  font-size: 1.1rem;
+  color: #1a1a2e;
+  margin: 0 0 16px;
+}
+
+.odds-converter__row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.odds-converter__input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.odds-converter__results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.odds-converter__result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.odds-converter__format-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.odds-converter__format-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .hedge-calculator__form {
+    padding: 16px;
+  }
+
+  .hedge-calculator__controls {
+    flex-direction: column;
+  }
+
+  .hedge-calculator__input-row {
+    flex-direction: column;
+  }
+
+  .hedge-calculator__results-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hedge-calculator__stakes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .odds-converter__row {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 375px) {
+  .hedge-calculator__results-grid {
+    grid-template-columns: 1fr;
+  }
+}

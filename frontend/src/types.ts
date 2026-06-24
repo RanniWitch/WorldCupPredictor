@@ -69,3 +69,65 @@ export interface KnockoutRound {
 export interface KnockoutResponse {
   rounds: KnockoutRound[];
 }
+
+// Arbitrage Scanner Types
+export interface BestOdds {
+  price: number;
+  bookmaker: string;
+}
+
+export interface ArbitrageStakes {
+  budget: number;
+  home: number;
+  draw?: number;
+  away: number;
+  guaranteed_profit: number;
+}
+
+export interface BookmakerOdds {
+  bookmaker: string;
+  home?: number;
+  draw?: number;
+  away?: number;
+}
+
+export interface ArbitrageEvent {
+  event_id: string;
+  home_team: string;
+  away_team: string;
+  commence_time: string;
+  is_arbitrage: boolean;
+  implied_probability: number;
+  profit_pct: number;
+  market?: string;
+  market_label?: string;
+  best_odds: {
+    home: BestOdds;
+    away: BestOdds;
+    draw: BestOdds | null;
+  };
+  stakes: ArbitrageStakes | null;
+  bookmaker_count: number;
+  all_bookmaker_odds: BookmakerOdds[];
+}
+
+export interface ArbitrageResponse {
+  events: ArbitrageEvent[];
+  arbitrage_found: number;
+  total_events: number;
+  quota_remaining: string;
+  sport: string;
+}
+
+export interface SportItem {
+  key: string;
+  title: string;
+  group: string;
+  description: string;
+  has_outrights: boolean;
+}
+
+export interface SportsResponse {
+  active: SportItem[];
+  inactive: SportItem[];
+}
